@@ -1,33 +1,18 @@
 package com.supermap.zq.main.Analysis;
 
-import com.google.gson.JsonArray;
-import com.supermap.data.*;
+import com.supermap.data.Point2D;
+import com.supermap.data.Workspace;
+import com.supermap.data.WorkspaceConnectionInfo;
+import com.supermap.data.WorkspaceType;
 import com.supermap.zq.main.entitys.KrigingEntity;
-import com.supermap.zq.main.utils.AnalysisDataUtil;
 import com.supermap.zq.main.utils.AnalysisUtil;
-import com.supermap.zq.main.utils.WorkspaceConnectionInfoUtil;
-
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Map;
+import java.util.Properties;
 
-/**
- * 插值分析初始化类
- *
- * @author GZQ
- */
 public class AnalysisRun implements Runnable {
-	Properties prop = new Properties();
 	private AnalysisUtil ku;
-
-	{
-		try {
-			InputStream in = this.getClass().getClassLoader().getResourceAsStream("db.properties");
-			prop.load(in);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 
 	public AnalysisRun() {
 	}
@@ -37,7 +22,7 @@ public class AnalysisRun implements Runnable {
 	}
 
 	public AnalysisUtil getKu() {
-		return ku;
+		return this.ku;
 	}
 
 	public void setKu(AnalysisUtil ku) {
@@ -45,11 +30,20 @@ public class AnalysisRun implements Runnable {
 	}
 
 	public void init() {
-
-		WorkspaceConnectionInfo info = WorkspaceConnectionInfoUtil.getInstance();
-		Map<String, Object> pointsMap = new AnalysisUtil(info, new Workspace()).getPoints(prop.getProperty("dataUrl"));
-		//解析本地文件
-		//Map<String, Object> pointsMap = new AnalysisUtil(info, new Workspace()).getTempPoints();
+		Properties prop = new Properties();
+		try {
+			InputStream in = this.getClass().getClassLoader().getResourceAsStream("db.properties");
+			prop.load(in);
+		} catch (IOException var4) {
+			var4.printStackTrace();
+		}
+		WorkspaceConnectionInfo info = new WorkspaceConnectionInfo();
+		info.setType(WorkspaceType.ORACLE);
+		info.setServer(prop.getProperty("server"));
+		info.setName(prop.getProperty("name"));
+		info.setUser(prop.getProperty("user"));
+		info.setPassword(prop.getProperty("password"));
+		Map<String, Object> pointsMap = (new AnalysisUtil(info, new Workspace())).getPoints(prop.getProperty("dataUrl"));
 		this.initThread(this.auInit(info, "temp", pointsMap, prop));
 		this.initThread(this.auInit(info, "water", pointsMap, prop));
 		this.initThread(this.auInit(info, "hum", pointsMap, prop));
@@ -62,22 +56,20 @@ public class AnalysisRun implements Runnable {
 		thread.start();
 	}
 
-
 	public AnalysisUtil auInit(WorkspaceConnectionInfo info, String type, Map<String, Object> pointsMap, Properties prop) {
 		String[] zstr = prop.getProperty(type + "ZValues").split(",");
 		double[] zdouble = new double[zstr.length];
-		for (int i = 0; i < zstr.length; i++) {
+
+		for(int i = 0; i < zstr.length; ++i) {
 			zdouble[i] = Double.parseDouble(zstr[i]);
 		}
+
 		AnalysisUtil ku = new AnalysisUtil(info, new Workspace());
-		ku.setKn(new KrigingEntity((Point2D[]) pointsMap.get("points"), type, (double[]) pointsMap.get(type), zdouble));
+		ku.setKn(new KrigingEntity((Point2D[])((Point2D[])pointsMap.get("points")), type, (double[])((double[])pointsMap.get(type)), zdouble));
 		return ku;
 	}
 
-	@Override
 	public void run() {
-		ku.doAnalysis(ku.getKn());
+		this.ku.doAnalysis(this.ku.getKn());
 	}
-
 }
-

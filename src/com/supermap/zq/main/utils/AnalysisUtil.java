@@ -100,7 +100,7 @@ public class AnalysisUtil {
         // 构造克里金插值参数对像
         InterpolationKrigingParameter parameter = new InterpolationKrigingParameter();
         parameter.setSearchMode(SearchMode.KDTREE_FIXED_COUNT);
-        parameter.setExpectedCount(150);
+        parameter.setExpectedCount(12);
         parameter.setResolution(0.0005);
         parameter.setBounds(this.workSpaceUtil.getAnalysisDataset().computeBounds());
         // 插值分析
